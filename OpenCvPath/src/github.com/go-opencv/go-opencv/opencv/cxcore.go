@@ -166,6 +166,21 @@ func (img *IplImage) Get2D(x, y int) Scalar {
 	return Scalar(ret)
 }
 
+type ScalarRGBA int
+
+const (
+	ScalarB ScalarRGBA = 0
+	ScalarG ScalarRGBA = 1
+	ScalarR ScalarRGBA = 2
+	ScalarA ScalarRGBA = 3
+)
+
+/* Get2DIndex return one data */
+func (img *IplImage) Get2DIndex(x, y int, i ScalarRGBA) float64 {
+	ret := C.cvGet2D(unsafe.Pointer(img), C.int(y), C.int(x))
+	return float64(ret.val[C.int(i)])
+}
+
 /* Get3D return a specific element from a 3-dimensional matrix. */
 func (img *IplImage) Get3D(x, y, z int) Scalar {
 	ret := C.cvGet3D(unsafe.Pointer(img), C.int(z), C.int(y), C.int(x))

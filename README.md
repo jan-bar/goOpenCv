@@ -1,37 +1,17 @@
 # goOpenCv
 
 #### 介绍
-学习和使用opencv
-
-#### 软件架构
-软件架构说明
-
+学习和使用opencv  
+主要使用opencv2.4.9版本,通过cgo调用相关dll中的方法  
 
 #### 安装教程
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1.  将.\OpenCvPath\lib\*.dll拷贝到环境变量Path的任意一个目录  
+2.  需要编译则要将.\OpenCvPath的绝对路径加到GOPATH中,  
+    注意OpenCvPath里面有很多我添加或修改了,和github原作者的略微不一样  
+3.  可以去.\OpenCvPath\src\github.com\go-opencv\go-opencv\samples看例子  
+4.  另外分享一个好用工具,按键精灵带的工具"Picker.7z",用来分析窗口句柄和屏幕坐标很好用  
 
 #### 使用说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 码云特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  码云官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解码云上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是码云最有价值开源项目，是码云综合评定出的优秀开源项目
-5.  码云官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  码云封面人物是一档用来展示码云会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+1.  没啥特殊要求,可以参考.\LianLianKan里面的例子,build.bat是编译脚本  
