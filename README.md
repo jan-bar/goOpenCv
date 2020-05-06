@@ -19,4 +19,4 @@
 2.  启动游戏后不要改变窗口大小,点击开始游戏后,再cmd下执行LianLianKan.exe即可自动玩游戏咯  
 3.  可以查看lianliankan.gif看看我的效果吧  
 
-![lianliankan.gif](.\lianliankan.gif)
+![lianliankan.gif](lianliankan.gif)
