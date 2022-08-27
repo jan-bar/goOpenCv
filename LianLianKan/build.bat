@@ -25,5 +25,5 @@ set GOARCH=amd64
 
 @echo on
 
-go build -i -ldflags "-s -w"
+go build -ldflags "-s -w" -o LianLianKan.exe lianliankan.go
 .\LianLianKan.exe

@@ -10,8 +10,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/go-opencv/go-opencv/opencv"
 	"os"
+
+	"github.com/go-opencv/go-opencv/opencv"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 	win := opencv.NewWindow("Morphology Sample", opencv.CV_WINDOW_NORMAL)
 	defer win.Destroy()
 
-	callback := func(pos int) { ProcessImage(img, win) }
+	callback := func(pos int) { ProcessImage1(img, win) }
 
 	win.CreateTrackbar("NErode", 0, 50, callback)
 	win.CreateTrackbar("NDilate", 0, 50, callback)
@@ -41,7 +42,7 @@ func main() {
 	win.CreateTrackbar("StructHeight", 3, 50, callback)
 	win.CreateTrackbar("StructType", 0, 2, callback)
 
-	ProcessImage(img, win)
+	ProcessImage1(img, win)
 
 	for {
 		key := opencv.WaitKey(10)
@@ -73,7 +74,7 @@ var (
 	}
 )
 
-func ProcessImage(img *opencv.IplImage, win *opencv.Window) {
+func ProcessImage1(img *opencv.IplImage, win *opencv.Window) {
 
 	nErode, _ := win.GetTrackbarPos("NErode")
 	nDilate, _ := win.GetTrackbarPos("NDilate")

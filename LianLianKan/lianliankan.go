@@ -2,14 +2,12 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
-	"unsafe"
-
-	"fmt"
-
 	"time"
+	"unsafe"
 
 	"github.com/go-opencv/go-opencv/opencv"
 	"github.com/lxn/win"
