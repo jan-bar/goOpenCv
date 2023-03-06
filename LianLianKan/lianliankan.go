@@ -12,13 +12,16 @@ import (
 	"github.com/go-opencv/go-opencv/opencv"
 	"github.com/lxn/win"
 	"github.com/vova616/screenshot"
+	"golang.org/x/sys/windows"
 )
 
 func main() {
-	l := NewLianLianKan()
+	l, err := NewLianLianKan()
+	if err != nil {
+		panic(err)
+	}
 	defer l.Release()
 
-	var err error
 	for {
 		if err = l.CaptureAndLoadPic(); err != nil {
 			panic(err)
@@ -44,7 +47,8 @@ const (
 
 type (
 	LianLianKan struct {
-		X, Y       int32   // 游戏左上角坐标
+		X, Y       int32   // 游戏左上角坐标,X向右横坐标,Y向下纵坐标
+		Cx, Cy     int     // 每个格子长Cx,宽Cy
 		picName    string  // 截屏图片名称
 		xMax, yMax int     // xMax列,yMax行
 		data       [][]int // 保存每个点数据
@@ -58,31 +62,45 @@ type (
 	}
 )
 
-func NewLianLianKan() *LianLianKan {
-	winHwnd := win.FindWindow(nil, win.StringToBSTR("janbarLianLianKan"))
-	win.SetWindowPos(winHwnd, win.HWND_TOPMOST, // 居中且置顶窗口
-		(win.GetSystemMetrics(win.SM_CXFULLSCREEN)-1500)/2,
-		(win.GetSystemMetrics(win.SM_CYFULLSCREEN)-1000)/2,
-		0, 0, win.SWP_NOSIZE)
-	var RectPos, ClientPos win.RECT
-	win.GetWindowRect(winHwnd, &RectPos)
-	win.GetClientRect(winHwnd, &ClientPos)
-	l := &LianLianKan{ // 游戏左上角坐标
-		X:       RectPos.Right - ClientPos.Right + 141,
-		Y:       RectPos.Bottom - ClientPos.Bottom + 122,
-		picName: "lianliankan.png",
+func NewLianLianKan() (*LianLianKan, error) {
+	window := win.FindWindow(win.StringToBSTR("ShockwaveFlash"), nil)
+	if window == 0 {
+		return nil, errors.New("not run flashPlayer.exe")
+	}
+
+	win.SetWindowPos(window, win.HWND_TOPMOST, 0, 0, // 置顶窗口
+		0, 0, win.SWP_NOSIZE|win.SWP_NOMOVE)
+
+	// 相比于 win.GetWindowRect,win.GetClientRect,下面的方法更精确
+	// 因为win10有毛玻璃特效等,所以最好用下面方案获取窗口坐标
+	// https://learn.microsoft.com/zh-cn/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
+	// 根据上面注释,获取第DWMWA_EXTENDED_FRAME_BOUNDS项数据
+	const ExtendedFrameBounds = 9
+	var RectPos win.RECT
+	err := windows.DwmGetWindowAttribute(windows.HWND(window), ExtendedFrameBounds,
+		unsafe.Pointer(&RectPos), uint32(unsafe.Sizeof(RectPos)))
+	if err != nil {
+		return nil, err
+	}
+
+	l := &LianLianKan{
+		X:       RectPos.Left + 57, // 窗口左上角X坐标偏移一定值到游戏界面左上角X坐标
+		Cx:      44,                // 经过计算2个图标中间横向长度
+		Y:       RectPos.Top + 110, // 窗口左上角Y坐标偏移一定值到游戏界面左上角Y坐标
+		Cy:      40,                // 经过计算2个图标中间纵向宽度
+		picName: "LianLianKan.png",
 		xMax:    14, yMax: 10,
 	}
 	l.data = make([][]int, l.yMax)
 	for i := 0; i < l.yMax; i++ {
 		l.data[i] = make([]int, l.xMax)
 	}
-	return l
+	return l, nil
 }
 
-// 左键点击一次对应位置
+// ClickLeft 左键点击一次对应位置
 func (l *LianLianKan) ClickLeft(pos LianLianKanPos) {
-	win.SetCursorPos(l.X+int32(pos.x*83)+20, l.Y+int32(pos.y*76)+20)
+	win.SetCursorPos(l.X+int32(pos.x*l.Cx)+20, l.Y+int32(pos.y*l.Cy)+20)
 	input := win.MOUSE_INPUT{
 		Type: win.INPUT_MOUSE,
 		Mi: win.MOUSEINPUT{
@@ -94,10 +112,10 @@ func (l *LianLianKan) ClickLeft(pos LianLianKanPos) {
 	time.Sleep(time.Millisecond * 500) // 避免点击太快,场面尴尬到失控
 }
 
-// 截屏游戏数据,保存成一张图片
+// CaptureAndLoadPic 截屏游戏数据,保存成一张图片
 func (l *LianLianKan) CaptureAndLoadPic() error {
-	x0, y0 := int(l.X), int(l.Y)
-	err := SavePng(x0, y0, x0+1159, y0+758, l.picName)
+	x0, y0 := int(l.X), int(l.Y) // 根据Picker.exe抓取坐标计算出来的值
+	err := SavePng(x0, y0, x0+615, y0+399, l.picName)
 	if err != nil {
 		return err
 	}
@@ -120,7 +138,7 @@ func (l *LianLianKan) LoadData() error {
 	for ix := 0; ix < l.xMax; ix++ {
 		for iy := 0; iy < l.yMax; iy++ {
 			if l.data[iy][ix] == NeedHandle {
-				if l.GetOnePic(ix*83+2, iy*76+2, 72, 66) {
+				if l.GetOnePic(ix, iy) {
 					l.MatchTemp() // 该位置有图片,需要匹配
 					l.picCnt++    // 图片编号增加
 				} else {
@@ -132,13 +150,23 @@ func (l *LianLianKan) LoadData() error {
 	return nil
 }
 
-// 从图片中截取一个小动物的图像
-func (l *LianLianKan) GetOnePic(x, y, w, h int) bool {
+// GetOnePic 从图片中截取一个小动物的图像
+func (l *LianLianKan) GetOnePic(ix, iy int) bool {
+	// 通过 opencv.SaveImage 将单个动物图像来调整下面4个数据
+	x, y, w, h := ix*l.Cx, iy*l.Cy, l.Cx-1, l.Cy-1
+
 	if l.temp == nil {
 		l.temp = opencv.CreateImage(w, h, l.image.Depth(), l.image.Channels())
 	}
 	l.image.SetROI(opencv.NewRect(x, y, w, h))
 	opencv.Copy(l.image, l.temp, nil)
+
+	// 需要调整单个小动物截图结果时,用下面代码保存图片,调试上面x,y,w,h的值
+	// ok := opencv.SaveImage("one.png", l.temp, nil)
+	// if ok != 1 {
+	// 	panic(fmt.Sprint("opencv.SaveImage", ok))
+	// }
+
 	for i := 0; i < w; i++ {
 		for j := 0; j < h; j++ {
 			if l.temp.Get2DIndex(i, j, opencv.ScalarR) > 0 {
@@ -149,7 +177,7 @@ func (l *LianLianKan) GetOnePic(x, y, w, h int) bool {
 	return false
 }
 
-// 找到name图片在游戏区域所有匹配位置
+// MatchTemp 找到name图片在游戏区域所有匹配位置
 func (l *LianLianKan) MatchTemp() {
 	l.image.ResetROI() // 每次匹配时复位
 
@@ -173,7 +201,8 @@ func (l *LianLianKan) MatchTemp() {
 		}
 		// 从图片坐标得到data的坐标,然后设置对应位置图片编号
 		pos := maxLoc.ToPoint()
-		ix, iy := (pos.X+10)/83, (pos.Y+10)/76
+		// 坐标除以每个图标的长度和宽度,得到数组下标
+		ix, iy := (pos.X+10)/l.Cx, (pos.Y+10)/l.Cy
 		l.data[iy][ix] = l.picCnt
 
 		opencv.FloodFill(res, maxLoc, opencv.ScalarAll(0),
@@ -182,7 +211,7 @@ func (l *LianLianKan) MatchTemp() {
 	}
 }
 
-// 判断输赢,赢了返回true
+// IsWin 判断输赢,赢了返回true
 func (l *LianLianKan) IsWin() bool {
 	for iy := 0; iy < l.yMax; iy++ {
 		for ix := 0; ix < l.xMax; ix++ {
@@ -194,7 +223,7 @@ func (l *LianLianKan) IsWin() bool {
 	return true
 }
 
-// 打印游戏区域每种类型动物所处位置的编号
+// Print 打印游戏区域每种类型动物所处位置的编号
 // 相同编号为同一个动物
 func (l *LianLianKan) Print() {
 	for iy := 0; iy < l.yMax; iy++ {
@@ -217,7 +246,7 @@ func (l *LianLianKan) Release() {
 	}
 }
 
-// 将当前所有能连线的全点了
+// ClickAllTwoPos 将当前所有能连线的全点了
 func (l *LianLianKan) ClickAllTwoPos() {
 	for {
 		numList := make(map[int][]LianLianKanPos, l.picCnt)
@@ -257,7 +286,7 @@ func (l *LianLianKan) ClickAllTwoPos() {
 	}
 }
 
-// 连接2个图片,如果能连接返回true
+// ConnectTwoPos 连接2个图片,如果能连接返回true
 func (l *LianLianKan) ConnectTwoPos(p1, p2 LianLianKanPos) bool {
 	ok := false
 	switch {
@@ -282,7 +311,7 @@ func (l *LianLianKan) ConnectTwoPos(p1, p2 LianLianKanPos) bool {
 	return ok
 }
 
-// |
+// Link1 |
 func (l *LianLianKan) Link1(x, yMin, yMax int) bool {
 	if x == 0 || x == l.xMax-1 {
 		return true // 最左边和最右边,直接就能连
@@ -309,7 +338,7 @@ func (l *LianLianKan) Link1(x, yMin, yMax int) bool {
 	return false
 }
 
-// -
+// Link2 -
 func (l *LianLianKan) Link2(y, xMin, xMax int) bool {
 	if y == 0 || y == l.yMax-1 {
 		return true // 最上边和最下边,直接就能连
@@ -336,7 +365,7 @@ func (l *LianLianKan) Link2(y, xMin, xMax int) bool {
 	return false
 }
 
-// \
+// Link3 \
 func (l *LianLianKan) Link3(xyMin, xyMax LianLianKanPos) bool {
 	for ix := -1; ix <= l.xMax; ix++ { // X方向
 		switch {
@@ -393,7 +422,7 @@ func (l *LianLianKan) Link3(xyMin, xyMax LianLianKanPos) bool {
 	return false
 }
 
-// /
+// Link4 /
 func (l *LianLianKan) Link4(xMinYMax, xMaxYMin LianLianKanPos) bool {
 	for ix := -1; ix <= l.xMax; ix++ {
 		switch {
@@ -450,7 +479,7 @@ func (l *LianLianKan) Link4(xMinYMax, xMaxYMin LianLianKanPos) bool {
 	return false
 }
 
-// (y,xMin)和(y,xMax),包含这两个点,能连线返回true
+// CanLinkX (y,xMin)和(y,xMax),包含这两个点,能连线返回true
 func (l *LianLianKan) CanLinkX(y, xMin, xMax int) bool {
 	if y < 0 || y >= l.yMax {
 		return true // 边界以外直接可以连线
@@ -470,7 +499,7 @@ func (l *LianLianKan) CanLinkX(y, xMin, xMax int) bool {
 	return true
 }
 
-// (yMin,x)和(yMax,x),包含这两个点,能连线返回true
+// CanLinkY (yMin,x)和(yMax,x),包含这两个点,能连线返回true
 func (l *LianLianKan) CanLinkY(x, yMin, yMax int) bool {
 	if x < 0 || x >= l.xMax {
 		return true // 边界以外直接可以连线
@@ -490,7 +519,7 @@ func (l *LianLianKan) CanLinkY(x, yMin, yMax int) bool {
 	return true
 }
 
-// 屏幕截图,保存为png图片
+// SavePng 屏幕截图,保存为png图片
 func SavePng(x0, y0, x1, y1 int, name string) error {
 	img, err := screenshot.CaptureRect(image.Rect(x0, y0, x1, y1))
 	if err != nil {
@@ -500,6 +529,7 @@ func SavePng(x0, y0, x1, y1 int, name string) error {
 	if err != nil {
 		return err
 	}
+	//goland:noinspection GoUnhandledErrorResult
 	defer fw.Close()
 	return png.Encode(fw, img) // 保存png图片
 }
