@@ -16,7 +16,8 @@
 
 1.  没啥特殊要求,可以参考.\LianLianKan里面的例子,build.bat是编译脚本  
 2.  由于是图像匹配,因此需要精确的坐标,由于新版window移除flash,我找了个flashplayer.exe,记得运行swf后不要改变窗口大小  
-3.  启动游戏后不要改变窗口大小,点击开始游戏后,再cmd下执行LianLianKan.exe即可自动玩游戏咯  
-4.  可以查看lianliankan.gif看看我的效果吧  
+3. 特别注意显示器比例要100%时像素坐标才会准![screen.png](screen.png)
+4.  启动游戏后不要改变窗口大小,点击开始游戏后,再cmd下执行LianLianKan.exe即可自动玩游戏咯  
+5.  可以查看lianliankan.gif看看我的效果吧  
 
 ![lianliankan.gif](lianliankan.gif)
