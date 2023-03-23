@@ -9,7 +9,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/go-opencv/go-opencv/opencv"
+	"github.com/jan-bar/go-opencv/opencv"
 	"github.com/lxn/win"
 	"github.com/vova616/screenshot"
 	"golang.org/x/sys/windows"
@@ -74,7 +74,7 @@ func NewLianLianKan() (*LianLianKan, error) {
 	// 相比于 win.GetWindowRect,win.GetClientRect,下面的方法更精确
 	// 因为win10有毛玻璃特效等,所以最好用下面方案获取窗口坐标
 	// https://learn.microsoft.com/zh-cn/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
-	// 根据上面注释,获取第DWMWA_EXTENDED_FRAME_BOUNDS项数据
+	// 根据上面注释,获取第DW MWA_EXTENDED_FRAME_BOUNDS项数据
 	const ExtendedFrameBounds = 9
 	var RectPos win.RECT
 	err := windows.DwmGetWindowAttribute(windows.HWND(window), ExtendedFrameBounds,
@@ -258,7 +258,7 @@ func (l *LianLianKan) ClickAllTwoPos() {
 					})
 				}
 			}
-		} // 每次都产生新的列表,将已经消除的去掉
+		} // 每次都产生新地列表,将已经消除的去掉
 
 		isClick := true
 		for _, val := range numList {
