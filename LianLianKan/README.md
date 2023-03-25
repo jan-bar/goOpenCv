@@ -5,8 +5,40 @@
 
 #### 安装教程
 
-1.  详细安装自己体会,各种命令均在build.bat中  
-2.  记得一定要将.\OpenCvPath\lib\*.dll放到环境变量Path目录,不然运行会报缺少dll的错误  
+准备gocv环境
+
+可以下我编译的: [下载地址](https://github.com/jan-bar/go-opencv/releases/download/v0.0.1/opencv.7z)
+
+解压后建立c盘链接: `mklink /j c:\opencv xxx\opencv`
+
+或者按照gocv文档编译
+
+[文档](https://gocv.io/getting-started/windows/)
+
+下载gcc环境: [下载地址](https://sourceforge.net/projects/mingw-w64/files/),选择最新版`x86_64-posix-seh`
+
+下载cmake: [下载地址](https://cmake.org/download/),可以选择zip免安装版本
+
+然后根据脚本进行编译: [编译脚本](https://github.com/hybridgroup/gocv/blob/release/win_build_opencv.cmd)
+
+`set http_proxy=127.0.0.1:1081 & set https_proxy=127.0.0.1:1081` 设置代理中途需要下载GitHub资源
+
+`wget https://github.com/opencv/opencv/archive/4.7.0.zip -O opencv-4.7.0.zip` 解压到当前目录
+
+`wget https://github.com/opencv/opencv_contrib/archive/4.7.0.zip -O opencv_contrib-4.7.0.zip` 解压到当前目录
+
+最好执行`mklink /j c:\opencv xxx\opencv`,保证脚本使用都是`c:\opencv`路径,包括gcc和cmake工具
+
+`set enable_shared=ON` 使用动态dll编译,记得cmake命令里面几个路径改为自己需要的
+
+`set enable_shared=OFF` 使用静态编译,记得cmake命令里面几个路径改为自己需要的
+
+编译完成后将`install`路径按照gocv要求弄好,做个压缩包存起来也可以
+
+注意编译出来的可执行程序还依赖`libwinpthread-1.dll,libstdc++-6.dll,libgcc_s_seh-1.dll`这3个dll,一般安装window的git就有
+
+不然还得将上面解压的gcc环境里的这3个dll路径添加到PATH环境变量中
+
 
 #### 使用说明
 

@@ -9,9 +9,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/jan-bar/go-opencv/opencv"
 	"github.com/lxn/win"
 	"github.com/vova616/screenshot"
+	"gocv.io/x/gocv"
 	"golang.org/x/sys/windows"
 )
 
@@ -54,7 +54,7 @@ type (
 		data       [][]int // 保存每个点数据
 		picCnt     int     // 相同图片编号
 
-		image, temp *opencv.IplImage
+		image, temp gocv.Mat
 	}
 
 	LianLianKanPos struct {
@@ -110,6 +110,10 @@ func (l *LianLianKan) ClickLeft(pos LianLianKanPos) {
 	time.Sleep(time.Millisecond * 100) // 避免点击太快,场面尴尬到失控
 	win.SendInput(1, unsafe.Pointer(&input), int32(unsafe.Sizeof(input)))
 	time.Sleep(time.Millisecond * 500) // 避免点击太快,场面尴尬到失控
+
+	if win.GetKeyState(win.VK_SPACE) < 0 {
+		os.Exit(0) // 按下空格键中断鼠标点击
+	}
 }
 
 // CaptureAndLoadPic 截屏游戏数据,保存成一张图片
@@ -120,8 +124,8 @@ func (l *LianLianKan) CaptureAndLoadPic() error {
 		return err
 	}
 	l.Release() // 释放上一次资源
-	l.image = opencv.LoadImage(l.picName)
-	if l.image == nil {
+	l.image = gocv.IMRead(l.picName, gocv.IMReadUnchanged)
+	if l.image.Empty() {
 		return errors.New("LoadImage fail")
 	}
 	// 下面均为重置数据
@@ -152,25 +156,24 @@ func (l *LianLianKan) LoadData() error {
 
 // GetOnePic 从图片中截取一个小动物的图像
 func (l *LianLianKan) GetOnePic(ix, iy int) bool {
-	// 通过 opencv.SaveImage 将单个动物图像来调整下面4个数据
+	// 根据坐标计算每个格子的左上角坐标和宽高
 	x, y, w, h := ix*l.Cx, iy*l.Cy, l.Cx-1, l.Cy-1
+	_ = l.temp.Close() // 将上个图片释放
+	// 根据上面的值计算出对应格子的左上角和右下角坐标
+	l.temp = l.image.Region(image.Rect(x, y, x+w, y+h))
 
-	if l.temp == nil {
-		l.temp = opencv.CreateImage(w, h, l.image.Depth(), l.image.Channels())
-	}
-	l.image.SetROI(opencv.NewRect(x, y, w, h))
-	opencv.Copy(l.image, l.temp, nil)
-
-	// 需要调整单个小动物截图结果时,用下面代码保存图片,调试上面x,y,w,h的值
-	// ok := opencv.SaveImage("one.png", l.temp, nil)
-	// if ok != 1 {
-	// 	panic(fmt.Sprint("opencv.SaveImage", ok))
+	// 需要调试时,可以用下面方式保存单个图片
+	// if !gocv.IMWrite("one.png", l.temp) {
+	// 	panic("gocv.IMWrite fail")
 	// }
 
 	for i := 0; i < w; i++ {
 		for j := 0; j < h; j++ {
-			if l.temp.Get2DIndex(i, j, opencv.ScalarR) > 0 {
-				return true // r > 0表示该位置有图片
+			// row 表示从上到下和宽h对应,对应y垂直方向
+			// col 表示从左到右和长w对应,对应x水平方向
+			// 返回结果是BGR,判断R>0时说明这张图片有小动物
+			if bgr := l.temp.GetVecbAt(j, i); bgr[2] > 0 {
+				return true
 			}
 		}
 	}
@@ -179,35 +182,31 @@ func (l *LianLianKan) GetOnePic(ix, iy int) bool {
 
 // MatchTemp 找到name图片在游戏区域所有匹配位置
 func (l *LianLianKan) MatchTemp() {
-	l.image.ResetROI() // 每次匹配时复位
+	// 找到一篇文章,得到匹配多个图片的方案
+	// https://stackoverflow.com/questions/58763007/opencv-equivalent-of-np-where
+	// 一些教程文章
+	// https://kebingzao.com/2021/06/02/opencv-match-template/
 
-	res := opencv.CreateImage(
-		l.image.Width()-l.temp.Width()+1,
-		l.image.Height()-l.temp.Height()+1,
-		32, 1)
+	result := gocv.NewMat()
+	//goland:noinspection GoUnhandledErrorResult
+	defer result.Close()
+	m := gocv.NewMat()
 
 	// 下面调用图片匹配,且只保留一定阈值的结果数据
-	opencv.MatchTemplate(l.image, l.temp, res, opencv.CV_TM_CCOEFF_NORMED)
-	opencv.Threshold(res, res, 0.8, 1.0, opencv.CV_THRESH_TOZERO)
+	gocv.MatchTemplate(l.image, l.temp, &result, gocv.TmCcoeffNormed, m)
+	_ = m.Close()
 
-	var (
-		minVal, maxVal float64
-		minLoc, maxLoc opencv.CvPoint
-	)
-	for {
-		opencv.MinMaxLoc(res, &minVal, &maxVal, &minLoc, &maxLoc, nil)
-		if maxVal < 0.8 {
-			break // 低于阈值,没有能匹配图片
-		}
+	thresh := gocv.NewMat()
+	gocv.Threshold(result, &thresh, 0.8, 1.0, gocv.ThresholdToZero)
+	gocv.FindNonZero(thresh, &result)
+	_ = thresh.Close()
+
+	for i := 0; i < result.Rows(); i++ {
+		top := result.GetVeciAt(i, 0)
 		// 从图片坐标得到data的坐标,然后设置对应位置图片编号
-		pos := maxLoc.ToPoint()
 		// 坐标除以每个图标的长度和宽度,得到数组下标
-		ix, iy := (pos.X+10)/l.Cx, (pos.Y+10)/l.Cy
+		ix, iy := (int(top[0])+10)/l.Cx, (int(top[1])+10)/l.Cy
 		l.data[iy][ix] = l.picCnt
-
-		opencv.FloodFill(res, maxLoc, opencv.ScalarAll(0),
-			opencv.ScalarAll(0.1), opencv.ScalarAll(1.0),
-			nil, 4, nil)
 	}
 }
 
@@ -236,14 +235,8 @@ func (l *LianLianKan) Print() {
 }
 
 func (l *LianLianKan) Release() {
-	if l.image != nil {
-		l.image.Release()
-		l.image = nil
-	}
-	if l.temp != nil {
-		l.temp.Release()
-		l.temp = nil
-	}
+	_ = l.image.Close()
+	_ = l.temp.Close()
 }
 
 // ClickAllTwoPos 将当前所有能连线的全点了

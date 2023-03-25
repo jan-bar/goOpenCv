@@ -1,11 +1,13 @@
 github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc h1:7D+Bh06CRPCJO3gr2F7h1sriovOZ8BMhca2Rg85c2nk=
 github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/jan-bar/go-opencv v0.0.0-20230323093013-d84d45bc6d7e h1:rZ/nsZh5E9kFK+j/BnDBEdlZn52cToXzq+u853a79Is=
-github.com/jan-bar/go-opencv v0.0.0-20230323093013-d84d45bc6d7e/go.mod h1:f0ip1vzsJmr5Hl+g4itsQt2A4pqA3cZ/a/cMFlUlIOE=
+github.com/hybridgroup/mjpeg v0.0.0-20140228234708-4680f319790e/go.mod h1:eagM805MRKrioHYuU7iKLUyFPVKqVV6um5DAvCkUtXs=
 github.com/lxn/win v0.0.0-20210218163916-a377121e959e h1:H+t6A/QJMbhCSEH5rAuRxh+CtW96g0Or0Fxa9IKr4uc=
 github.com/lxn/win v0.0.0-20210218163916-a377121e959e/go.mod h1:KxxjdtRkfNoYDCUP5ryK7XJJNTnpC8atvtmTheChOtk=
+github.com/pascaldekloe/goe v0.1.0/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/vova616/screenshot v0.0.0-20220801010501-56c10359473c h1:mqgl+NQgzZ30EX7oA3uNIlPn6dAgG6sThBiUodUzZpU=
 github.com/vova616/screenshot v0.0.0-20220801010501-56c10359473c/go.mod h1:gjlNhAXON0uGGilpsAZpMx5bN1ZVavUlJETHif7w4HQ=
+gocv.io/x/gocv v0.32.1 h1:BC9hHs5+47nVgySUFVKntc6RsF3SULFzqk6OV9xz+C0=
+gocv.io/x/gocv v0.32.1/go.mod h1:oc6FvfYqfBp99p+yOEzs9tbYF9gOrAQSeL/dyIPefJU=
 golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.6.0 h1:MVltZSvRTcU2ljQOhs94SXPftV6DCNnZViHeQps87pQ=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

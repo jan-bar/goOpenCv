@@ -1,11 +1,11 @@
 module goOpenCv
 
-go 1.19
+go 1.20
 
 require (
-	github.com/jan-bar/go-opencv v0.0.0-20230323093013-d84d45bc6d7e
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e
 	github.com/vova616/screenshot v0.0.0-20220801010501-56c10359473c
+	gocv.io/x/gocv v0.32.1
 	golang.org/x/sys v0.6.0
 )
 
