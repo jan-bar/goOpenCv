@@ -158,8 +158,8 @@ func (l *LianLianKan) LoadData() error {
 func (l *LianLianKan) GetOnePic(ix, iy int) bool {
 	// 根据坐标计算每个格子的左上角坐标和宽高
 	x, y, w, h := ix*l.Cx, iy*l.Cy, l.Cx-1, l.Cy-1
-	_ = l.temp.Close() // 将上个图片释放
 	// 根据上面的值计算出对应格子的左上角和右下角坐标
+	// l.temp 底层和 l.image 共用,因此只需要l.image.Close()
 	l.temp = l.image.Region(image.Rect(x, y, x+w, y+h))
 
 	// 需要调试时,可以用下面方式保存单个图片
@@ -182,7 +182,7 @@ func (l *LianLianKan) GetOnePic(ix, iy int) bool {
 
 // MatchTemp 找到name图片在游戏区域所有匹配位置
 func (l *LianLianKan) MatchTemp() {
-	// 找到一篇文章,得到匹配多个图片的方案
+	// 找到一篇文章,得到匹配多个图片的方案,通过自己的摸索理解,用不着该方案
 	// https://stackoverflow.com/questions/58763007/opencv-equivalent-of-np-where
 	// 一些教程文章
 	// https://kebingzao.com/2021/06/02/opencv-match-template/
@@ -190,23 +190,25 @@ func (l *LianLianKan) MatchTemp() {
 	result := gocv.NewMat()
 	//goland:noinspection GoUnhandledErrorResult
 	defer result.Close()
-	m := gocv.NewMat()
+	m := gocv.NewMat() // mask不会空时才会执行掩码运算
 
 	// 下面调用图片匹配,且只保留一定阈值的结果数据
 	gocv.MatchTemplate(l.image, l.temp, &result, gocv.TmCcoeffNormed, m)
 	_ = m.Close()
 
-	thresh := gocv.NewMat()
-	gocv.Threshold(result, &thresh, 0.8, 1.0, gocv.ThresholdToZero)
-	gocv.FindNonZero(thresh, &result)
-	_ = thresh.Close()
-
-	for i := 0; i < result.Rows(); i++ {
-		top := result.GetVeciAt(i, 0)
-		// 从图片坐标得到data的坐标,然后设置对应位置图片编号
-		// 坐标除以每个图标的长度和宽度,得到数组下标
-		ix, iy := (int(top[0])+10)/l.Cx, (int(top[1])+10)/l.Cy
-		l.data[iy][ix] = l.picCnt
+	// result 保存了原图所有像素点的匹配度,因此直接遍历这些像素点
+	// 获取这些像素点的匹配度,筛选大于指定阈值的匹配度的像素点即可
+	// 下面就是匹配多个结果的方案, 用这个 gocv.MinMaxLoc() 方法取的结果
+	// 就是最大最小匹配度以及这两个像素点的位置
+	for r, cm := 0, result.Cols(); r < result.Rows(); r++ {
+		for c := 0; c < cm; c++ {
+			if t := result.GetFloatAt(r, c); t > 0.8 {
+				// 从图片坐标得到data的坐标,然后设置对应位置图片编号
+				// 坐标除以每个图标的长度和宽度,得到数组下标
+				ix, iy := (c+10)/l.Cx, (r+10)/l.Cy
+				l.data[iy][ix] = l.picCnt
+			}
+		}
 	}
 }
 
@@ -236,7 +238,6 @@ func (l *LianLianKan) Print() {
 
 func (l *LianLianKan) Release() {
 	_ = l.image.Close()
-	_ = l.temp.Close()
 }
 
 // ClickAllTwoPos 将当前所有能连线的全点了
