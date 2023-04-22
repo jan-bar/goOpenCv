@@ -2,6 +2,11 @@
 *.exe~
 *.test
 *.out
+*.dll
+*.so
+*.dylib
+
+*.tmp.*
 .idea/
 pkg/
 Picker/

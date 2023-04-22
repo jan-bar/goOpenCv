@@ -1,0 +1,139 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"image"
+	"image/color"
+	"image/png"
+	"os"
+
+	"gocv.io/x/gocv"
+)
+
+// 截取图片和合并图片的示例代码
+func main() {
+	// goCvTest()
+	// return
+
+	// err := test()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	err := Merge()
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Merge 将27个单张牌图片合并到1张图片中
+func Merge() error {
+	w, h := 48, 71 // 单个牌的宽和高
+	img := image.NewRGBA(image.Rect(0, 0, w*9, h*3))
+
+	type xy struct {
+		c byte
+		y int
+	}
+
+	for _, c := range []xy{
+		{c: 'm'},
+		{c: 'p', y: h},
+		{c: 's', y: h * 2},
+	} {
+		for i := 1; i <= 9; i++ {
+			data, err := os.ReadFile(fmt.Sprintf(`img/%c%d.png`, c.c, i))
+			if err != nil {
+				return err
+			}
+			sub, err := png.Decode(bytes.NewReader(data))
+			if err != nil {
+				return err
+			}
+
+			for x := 0; x < w; x++ {
+				for y := 0; y < h; y++ {
+					img.Set((i-1)*w+x, c.y+y, sub.At(x, y))
+				}
+			}
+		}
+	}
+
+	fw, err := os.Create(`img/all.png`)
+	if err != nil {
+		return err
+	}
+	err = png.Encode(fw, img)
+	_ = fw.Close()
+	return err
+}
+
+func goCvTest() {
+
+	img1 := gocv.IMRead(`janbar-helper\img\a.png`, gocv.IMReadUnchanged)
+	img2 := gocv.IMRead(`janbar-helper\img\a_1.png`, gocv.IMReadUnchanged)
+
+	result := gocv.NewMat()
+	//goland:noinspection GoUnhandledErrorResult
+	defer result.Close()
+	m := gocv.NewMat()
+
+	// 下面调用图片匹配,且只保留一定阈值的结果数据
+	gocv.MatchTemplate(img1, img2, &result, gocv.TmCcoeffNormed, m)
+	_ = m.Close()
+
+	thresh := gocv.NewMat()
+	gocv.Threshold(result, &thresh, 0.9, 1.0, gocv.ThresholdToZero)
+	gocv.FindNonZero(thresh, &result)
+	_ = thresh.Close()
+
+	for i := 0; i < result.Rows(); i++ {
+		top := result.GetVeciAt(i, 0)
+		gocv.Rectangle(&img1, image.Rectangle{
+			Min: image.Pt(int(top[0]), int(top[1])),
+			Max: image.Pt(int(top[0])+48, int(top[1])+71),
+		}, color.RGBA{255, 0, 0, 1}, 2)
+	}
+	gocv.IMWrite(`janbar-helper\img\a_out.png`, img1)
+}
+
+func test() error {
+	fr, err := os.Open(`janbar-helper\img\a.png`)
+	if err != nil {
+		return err
+	}
+	img, err := png.Decode(fr)
+	_ = fr.Close()
+	if err != nil {
+		return err
+	}
+
+	sub, ok := img.(SubImage)
+	if !ok {
+		return nil
+	}
+
+	for i := 0; i < 3; i++ {
+		err = subFile(sub, 1005+i*48, 778,
+			fmt.Sprintf(`janbar-helper\img\a_%d.png`, i))
+		if err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+type SubImage interface {
+	SubImage(r image.Rectangle) image.Image
+}
+
+func subFile(sub SubImage, x, y int, p string) error {
+	fw, err := os.Create(p)
+	if err != nil {
+		return err
+	}
+	err = png.Encode(fw, sub.SubImage(image.Rect(x, y, x+48, y+71)))
+	_ = fw.Close()
+	return err
+}

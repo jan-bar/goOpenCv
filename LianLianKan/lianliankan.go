@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"image/png"
 	"os"
 	"time"
 	"unsafe"
 
+	"github.com/jan-bar/tools/screenshot"
 	"github.com/lxn/win"
-	"github.com/vova616/screenshot"
 	"gocv.io/x/gocv"
 	"golang.org/x/sys/windows"
 )
@@ -49,7 +48,6 @@ type (
 	LianLianKan struct {
 		X, Y       int32   // 游戏左上角坐标,X向右横坐标,Y向下纵坐标
 		Cx, Cy     int     // 每个格子长Cx,宽Cy
-		picName    string  // 截屏图片名称
 		xMax, yMax int     // xMax列,yMax行
 		data       [][]int // 保存每个点数据
 		picCnt     int     // 相同图片编号
@@ -84,17 +82,19 @@ func NewLianLianKan() (*LianLianKan, error) {
 	}
 
 	l := &LianLianKan{
-		X:       RectPos.Left + 57, // 窗口左上角X坐标偏移一定值到游戏界面左上角X坐标
-		Cx:      44,                // 经过计算2个图标中间横向长度
-		Y:       RectPos.Top + 110, // 窗口左上角Y坐标偏移一定值到游戏界面左上角Y坐标
-		Cy:      40,                // 经过计算2个图标中间纵向宽度
-		picName: "LianLianKan.png",
-		xMax:    14, yMax: 10,
+		X:    RectPos.Left + 57, // 窗口左上角X坐标偏移一定值到游戏界面左上角X坐标
+		Cx:   44,                // 经过计算2个图标中间横向长度
+		Y:    RectPos.Top + 110, // 窗口左上角Y坐标偏移一定值到游戏界面左上角Y坐标
+		Cy:   40,                // 经过计算2个图标中间纵向宽度
+		xMax: 14, yMax: 10,
 	}
 	l.data = make([][]int, l.yMax)
 	for i := 0; i < l.yMax; i++ {
 		l.data[i] = make([]int, l.xMax)
 	}
+
+	l.ClickLeft(LianLianKanPos{x: 6, y: 7})
+	win.SetCursorPos(0, 0) // 点击开始游戏后把鼠标移开
 	return l, nil
 }
 
@@ -119,12 +119,12 @@ func (l *LianLianKan) ClickLeft(pos LianLianKanPos) {
 // CaptureAndLoadPic 截屏游戏数据,保存成一张图片
 func (l *LianLianKan) CaptureAndLoadPic() error {
 	x0, y0 := int(l.X), int(l.Y) // 根据Picker.exe抓取坐标计算出来的值
-	err := SavePng(x0, y0, x0+615, y0+399, l.picName)
+	img, err := screenshot.CaptureRect(image.Rect(x0, y0, x0+615, y0+399))
 	if err != nil {
 		return err
 	}
 	l.Release() // 释放上一次资源
-	l.image = gocv.IMRead(l.picName, gocv.IMReadUnchanged)
+	l.image, err = gocv.ImageToMatRGB(img)
 	if l.image.Empty() {
 		return errors.New("LoadImage fail")
 	}
@@ -511,19 +511,4 @@ func (l *LianLianKan) CanLinkY(x, yMin, yMax int) bool {
 		}
 	}
 	return true
-}
-
-// SavePng 屏幕截图,保存为png图片
-func SavePng(x0, y0, x1, y1 int, name string) error {
-	img, err := screenshot.CaptureRect(image.Rect(x0, y0, x1, y1))
-	if err != nil {
-		return err
-	}
-	fw, err := os.Create(name)
-	if err != nil {
-		return err
-	}
-	//goland:noinspection GoUnhandledErrorResult
-	defer fw.Close()
-	return png.Encode(fw, img) // 保存png图片
 }
