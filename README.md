@@ -13,7 +13,7 @@
 ![picker](picker.png)
 
 ## 介绍
-本项目使用 [gocv](https://gocv.io/) ,通过图像识别玩游戏
+本项目使用 [gocv](https://gocv.io/) , [github](https://github.com/hybridgroup/gocv) ,通过图像识别玩游戏
 
 ## 安装教程
 

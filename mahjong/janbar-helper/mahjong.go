@@ -27,6 +27,7 @@ var (
 	// 27个麻将牌的mat数据
 	mjP = make([]gocv.Mat, 0, 27)
 
+	// 匹配结果是32位浮点数,因此要用float32进行比较
 	matchScore float32 = scoreDefault
 )
 
@@ -163,8 +164,6 @@ func matchOne(rect image.Rectangle, tile []int, window *gocv.Window) error {
 
 		for c, rm := 0, result.Rows(); c < result.Cols(); c++ {
 			for r := 0; r < rm; r++ {
-				// 换成 result.GetDoubleAt(r, c) ,直接报错
-				// 所以只能用float32进行比较
 				score := result.GetFloatAt(r, c)
 				if score > matchScore {
 					gocv.PutText(&saveImg, ims, image.Pt(c, r+22), gocv.FontHersheyPlain, 1.5, red, 1)
