@@ -21,7 +21,7 @@
 
 准备gocv环境
 
-可以下我编译的: [下载地址](https://github.com/jan-bar/go-opencv/releases/download/v0.0.1/opencv.7z)
+可以下我编译的: [下载地址](https://github.com/jan-bar/goOpenCv/releases/download/4.10.0/opencv.7z)
 
 解压后建立c盘链接: `mklink /j c:\opencv xxx\opencv`
 
@@ -52,6 +52,31 @@
 注意编译出来的可执行程序还依赖`libwinpthread-1.dll,libstdc++-6.dll,libgcc_s_seh-1.dll`这3个dll,一般安装window的git就有
 
 不然还得将上面解压的gcc环境里的这3个dll路径添加到PATH环境变量中
+
+使用`msys2`编译
+```shell
+# 在UCRT64终端,安装必要软件和编译环境
+pacman -S mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-7zip mingw-w64-ucrt-x86_64-make
+# 准备编译目录
+rm -rf /c/opencv
+mkdir -p /c/opencv/build
+# 下载opencv和opencv_contrib,有需要可设置代理
+#export https_proxy=127.0.0.1:1080
+wget https://github.com/opencv/opencv/archive/4.10.0.zip -O /c/opencv/opencv.zip
+wget https://github.com/opencv/opencv_contrib/archive/4.10.0.zip -O /c/opencv/opencv_contrib.zip
+# 解压
+7z x /c/opencv/opencv.zip -o/c/opencv
+7z x /c/opencv/opencv_contrib.zip -o/c/opencv
+
+cd /c/opencv/build
+# 编译动态库
+cmake /c/opencv/opencv-4.10.0 -G "MinGW Makefiles" -B/c/opencv/build -DENABLE_CXX11=ON -DOPENCV_EXTRA_MODULES_PATH=/c/opencv/opencv_contrib-4.10.0/modules -DBUILD_SHARED_LIBS=ON -DWITH_IPP=OFF -DWITH_MSMF=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=ON -DBUILD_opencv_java=OFF -DBUILD_opencv_python=OFF -DBUILD_opencv_python2=OFF -DBUILD_opencv_python3=OFF -DBUILD_DOCS=OFF -DENABLE_PRECOMPILED_HEADERS=OFF -DBUILD_opencv_saliency=OFF -DBUILD_opencv_wechat_qrcode=ON -DCPU_DISPATCH= -DOPENCV_GENERATE_PKGCONFIG=ON -DWITH_OPENCL_D3D11_NV=OFF -DOPENCV_ALLOCATOR_STATS_COUNTER_TYPE=int64_t -Wno-dev
+mingw32-make -j$(nproc) && mingw32-make install
+# 压缩编译好的文件
+mkdir -p opencv/build
+ln -sf /c/opencv/build/install opencv/build/install
+7z a /c/opencv/opencv.7z opencv/build/install
+```
 
 ## 相关项目
 每个项目都有`build.bat`编译脚本,会设置`opencv`相关dll的路径到`$PATH`环境变量中
